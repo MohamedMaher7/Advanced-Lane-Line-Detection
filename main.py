@@ -246,3 +246,63 @@ def concat_tile_resize(im_list_2d, interpolation=cv2.INTER_CUBIC):
     # concatenating images of different sizes in vertical and horizontal tiles, use the resizing and concatenating function.
     im_list_v = [hconcat_resize_min(im_list_h, interpolation=cv2.INTER_CUBIC) for im_list_h in im_list_2d]
     return vconcat_resize_min(im_list_v, interpolation=cv2.INTER_CUBIC)
+
+
+
+
+def process_image(img):
+
+    global mtx, dist, src, dst, debug
+
+    undist_img = undistort(img, mtx, dist)
+
+    warped = warp(img)
+
+    warped_binary = luv_lab_filter(warped, l_thresh=(215, 255),
+                                   b_thresh=(145, 200))
+
+    nonzerox, nonzeroy = np.nonzero(np.transpose(warped_binary))
+
+    if left.detected is True:
+        leftx, lefty, out_img_left = left.quick_search(nonzerox, nonzeroy, warped_binary)
+    if right.detected is True:
+        rightx, righty, out_img_right = right.quick_search(nonzerox, nonzeroy, warped_binary)
+    if left.detected is False:
+        leftx, lefty, out_img_left = left.blind_search(nonzerox, nonzeroy, warped_binary)
+    if right.detected is False:
+        rightx, righty, out_img_right = right.blind_search(nonzerox, nonzeroy, warped_binary)
+
+
+    out_combine = cv2.addWeighted(out_img_left, 1, out_img_right, 0.5, 0)
+
+    left.y = np.array(lefty).astype(np.float32)
+    left.x = np.array(leftx).astype(np.float32)
+    right.y = np.array(righty).astype(np.float32)
+    right.x = np.array(rightx).astype(np.float32)
+
+    left_fit, left_fitx, left_fity = left.get_fit()
+    right_fit, right_fitx, right_fity = right.get_fit()
+
+    offset, mean_curv = car_pos(left_fit, right_fit)
+
+    result = draw_area(undist_img, left_fitx, left_fity, right_fitx, right_fity)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text1 = 'Radius of Curvature: %d(m)'
+    text2 = 'Offset from center: %.2f(m)'
+    text3 = 'Radius of Curvature: Inf (m)'
+
+    if mean_curv < 3000:
+        cv2.putText(result, text1 % (int(mean_curv)),
+                                  (60, 100), font, 1.0, (255, 255, 255), thickness=2)
+    else:
+        cv2.putText(result, text3,
+                    (60, 100), font, 1.0, (255, 255, 255), thickness=2)
+    cv2.putText(result, text2 % (-offset),
+                              (60, 130), font, 1.0, (255, 255, 255), thickness=2)
+
+    if debug:
+        warped_binary_t=np.dstack((warped_binary,warped_binary,warped_binary))*255
+        result = concat_tile_resize([[result], [undist_img, warped,warped_binary_t,out_combine]])
+
+    return result
