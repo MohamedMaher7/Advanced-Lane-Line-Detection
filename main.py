@@ -306,3 +306,30 @@ def process_image(img):
         result = concat_tile_resize([[result], [undist_img, warped,warped_binary_t,out_combine]])
 
     return result
+
+
+img_shape = (720, 1280)
+img_size = [1280, 720]  # width, height
+
+src = np.float32([[490, 482], [810, 482],
+                  [1250, 720], [0, 720]])
+dst = np.float32([[0, 0], [1280, 0],
+                  [1250, 720], [40, 720]])
+ploty = np.linspace(0, img_shape[0] - 1, img_shape[0])
+
+# import Camera Calibration Parameters
+mtx = None
+dist = None
+camera_calibration()
+
+debug = int(sys.argv[3])
+frame_num = 15   # latest frames number of good detection
+left = Line()
+right = Line()
+
+video_output = sys.argv[2]
+input_path = sys.argv[1]
+
+clip1 = VideoFileClip(input_path)
+final_clip = clip1.fl_image(process_image)
+final_clip.write_videofile(video_output, audio=False)
