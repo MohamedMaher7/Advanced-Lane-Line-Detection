@@ -7,6 +7,36 @@ import matplotlib.image as mpimg
 from moviepy.editor import VideoFileClip
 from collections import deque
 
+# Define a class to receive the characteristics of each line detection
+class Line:
+    def __init__(self):
+        # was the line detected in the last iteration?
+        self.detected = False
+
+        # x and y values in last frame
+        self.x = None
+        self.y = None
+
+        # x intercepts for average smoothing
+        self.bottom_x = deque(maxlen=frame_num)
+        self.top_x = deque(maxlen=frame_num)
+
+        # Record last x intercept
+        self.current_bottom_x = None
+        self.current_top_x = None
+
+        # Polynomial coefficients: x = A*y**2 + B*y + C
+        self.A = deque(maxlen=frame_num)
+        self.B = deque(maxlen=frame_num)
+        self.C = deque(maxlen=frame_num)
+        self.fit = None
+        self.fitx = None
+        self.fity = None
+
+    def get_intercepts(self):
+        bottom = self.fit[0] * 720 ** 2 + self.fit[1] * 720 + self.fit[2]
+        top = self.fit[2]
+        return bottom, top
 
 def camera_calibration():
     global mtx,dist
