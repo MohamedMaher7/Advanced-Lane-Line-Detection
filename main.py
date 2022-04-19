@@ -68,6 +68,59 @@ def camera_calibration():
     # Calibrate camera
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_size, None, None)
 
+
+def draw_area(undist, left_fitx, lefty, right_fitx, righty):
+    Minv = cv2.getPerspectiveTransform(dst, src)
+
+    # Create an image to draw the lines on
+    warp_zero = np.zeros(img_shape[0:2]).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    # Recast the x and y points into usable format for cv2.fillPoly()
+    # pts_left = np.array([np.transpose(np.vstack([left_fitx, lefty]))])
+    pts_left = np.array([np.flipud(np.transpose(np.vstack([left_fitx, lefty])))])
+
+    pts_right = np.array([np.transpose(np.vstack([right_fitx, righty]))])
+
+    pts = np.hstack((pts_left, pts_right))
+
+    # Draw lines
+    cv2.polylines(color_warp, np.int_([pts]), isClosed=False, color=(200, 0, 0), thickness=30)
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
+
+    # Warp the blank back to original image space using inverse perspective matrix (Minv)
+    newwarp = cv2.warpPerspective(color_warp, Minv, (img_shape[1], img_shape[0]))
+
+    # Combine the result with the original image
+    return cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+
+
+def warp(img):
+    # Compute and apply perspective transform
+    M = cv2.getPerspectiveTransform(src, dst)
+    warped = cv2.warpPerspective(img, M, (1280, 720), flags=cv2.INTER_NEAREST)  # keep same size as input image
+
+    return warped
+
+def luv_lab_filter(img, l_thresh=(195, 255), b_thresh=(140, 200)):
+    # L channel from LUV space to detect white lanes.
+    l = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)[:, :, 0]
+    l_bin = np.zeros_like(l)
+    l_bin[(l >= l_thresh[0]) & (l <= l_thresh[1])] = 1
+
+    # B channel LAB space is to detect yellow lanes
+    b = cv2.cvtColor(img, cv2.COLOR_RGB2Lab)[:, :, 2]
+    b_bin = np.zeros_like(b)
+    b_bin[(b >= b_thresh[0]) & (b <= b_thresh[1])] = 1
+
+    combine = np.zeros_like(l)
+    combine[(l_bin == 1) | (b_bin == 1)] = 1
+
+    return combine
+
+
 def undistort(img, mtx, dist):
     #Matrix mtx and dist from camera calibration are applied to distortion correction
     #img: input img is RGB (imread by mpimg)
@@ -78,7 +131,7 @@ def undistort(img, mtx, dist):
     dst_img = cv2.undistort(img_BGR, mtx, dist, None, mtx)
     #return: Undistorted img
     return cv2.cvtColor(dst_img, cv2.COLOR_BGR2RGB)
-    
+
 
 def car_pos(left_fit, right_fit):
 
@@ -106,7 +159,7 @@ def car_pos(left_fit, right_fit):
     mean_curv = np.mean([left_curverad, right_curverad])
 
     return offset, mean_curv
-    
+
 def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     #concatenate images vertically
     w_min = min(im.shape[1] for im in im_list)
