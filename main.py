@@ -106,3 +106,25 @@ def car_pos(left_fit, right_fit):
     mean_curv = np.mean([left_curverad, right_curverad])
 
     return offset, mean_curv
+    
+def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    #concatenate images vertically
+    w_min = min(im.shape[1] for im in im_list)
+    im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
+                      for im in im_list]
+    #Concatenate images of the same width vertically
+    return cv2.vconcat(im_list_resize)
+
+
+def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    h_min = min(im.shape[0] for im in im_list)
+    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                      for im in im_list]
+    #When concatenating images of the same height horizontally
+    return cv2.hconcat(im_list_resize)
+
+
+def concat_tile_resize(im_list_2d, interpolation=cv2.INTER_CUBIC):
+    # concatenating images of different sizes in vertical and horizontal tiles, use the resizing and concatenating function.
+    im_list_v = [hconcat_resize_min(im_list_h, interpolation=cv2.INTER_CUBIC) for im_list_h in im_list_2d]
+    return vconcat_resize_min(im_list_v, interpolation=cv2.INTER_CUBIC)
