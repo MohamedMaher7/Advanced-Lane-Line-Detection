@@ -37,6 +37,71 @@ class Line:
         bottom = self.fit[0] * 720 ** 2 + self.fit[1] * 720 + self.fit[2]
         top = self.fit[2]
         return bottom, top
+    def quick_search(self, nonzerox, nonzeroy, image):
+        """
+        Assuming in last frame, lane has been detected. Based on last x/y coordinates, quick search current lane.
+        """
+        x_inds = []
+        y_inds = []
+        out_img = np.dstack((image, image, image)) * 255
+        if self.detected:
+            win_bottom = 720
+            win_top = 630
+            while win_top >= 0:
+                yval = np.mean([win_top, win_bottom])
+                xval = (np.median(self.A)) * yval ** 2 + (np.median(self.B)) * yval + (np.median(self.C))
+                x_idx = np.where((((xval - 50) < nonzerox)
+                                  & (nonzerox < (xval + 50))
+                                  & ((nonzeroy > win_top) & (nonzeroy < win_bottom))))
+                x_window, y_window = nonzerox[x_idx], nonzeroy[x_idx]
+                cv2.rectangle(out_img, (int(xval - 50), win_top), (int(xval + 50), win_bottom),
+                              (0, 255, 0), 2)
+                if np.sum(x_window) != 0:
+                    np.append(x_inds, x_window)
+                    np.append(y_inds, y_window)
+                win_top -= 90
+                win_bottom -= 90
+        if np.sum(x_inds) == 0:
+            self.detected = False  # If no lane pixels were detected then perform blind search
+        return x_inds, y_inds, out_img
+
+    def blind_search(self, nonzerox, nonzeroy, image):
+        """
+        Sliding window search method, start from blank.
+        """
+        x_inds = []
+        y_inds = []
+        out_img = np.dstack((image, image, image)) * 255
+        if self.detected is False:
+            win_bottom = 720
+            win_top = 630
+            histogram_complete = np.sum(image[200:, :], axis=0)
+            while win_top >= 0:
+                histogram = np.sum(image[win_top:win_bottom, :], axis=0)
+                if self == right:
+                    base = (np.argmax(histogram[640:-60]) + 640) \
+                        if np.argmax(histogram[640:-60]) > 0 \
+                        else (np.argmax(histogram_complete[640:]) + 640)
+                else:
+                    base = np.argmax(histogram[:640]) \
+                        if np.argmax(histogram[:640]) > 0 \
+                        else np.argmax(histogram_complete[:640])
+                x_idx = np.where((((base - 50) < nonzerox) & (nonzerox < (base + 50))
+                                  & ((nonzeroy > win_top) & (nonzeroy < win_bottom))))
+                x_window, y_window = nonzerox[x_idx], nonzeroy[x_idx]
+                cv2.rectangle(out_img, (int(base - 50), win_top), (int(base + 50), win_bottom),
+                              (0, 255, 0), 2)
+                if np.sum(x_window) != 0:
+                    x_inds.extend(x_window)
+                    y_inds.extend(y_window)
+                win_top -= 90
+                win_bottom -= 90
+        if np.sum(x_inds) > 0:
+            self.detected = False
+        else:
+            y_inds = self.y
+            x_inds = self.x
+        return x_inds, y_inds, out_img    
 
 def camera_calibration():
     global mtx,dist
