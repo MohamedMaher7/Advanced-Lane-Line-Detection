@@ -1,8 +1,8 @@
-# Advanced-Lane-Line-Detection
+# Lane Line Detection
 Simple Perception Stack for Self-Driving Cars
 
 
-**The goals / steps of this project are the following:**
+**The steps of this project are the following:**
 
 1. Compute the camera calibration matrix and distortion coefficients given a set of chessboard images in the camera_cal folder.
 2. Apply a distortion correction to images.
