@@ -37,3 +37,14 @@ def camera_calibration():
 
     # Calibrate camera
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_size, None, None)
+
+def undistort(img, mtx, dist):
+    #Matrix mtx and dist from camera calibration are applied to distortion correction
+    #img: input img is RGB (imread by mpimg)
+    # transform to BGR to fit cv2.imread
+    img_BGR = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    #mtx: camera calibration parameter
+    # dist: camera calibration parameter
+    dst_img = cv2.undistort(img_BGR, mtx, dist, None, mtx)
+    #return: Undistorted img
+    return cv2.cvtColor(dst_img, cv2.COLOR_BGR2RGB)
