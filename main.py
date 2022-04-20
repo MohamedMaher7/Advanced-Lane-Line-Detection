@@ -101,7 +101,47 @@ class Line:
         else:
             y_inds = self.y
             x_inds = self.x
-        return x_inds, y_inds, out_img    
+        return x_inds, y_inds, out_img  
+    
+    def sort_idx(self):
+        """
+        Sort x and y according to y index
+        """
+        sorted_idx = np.argsort(self.y)
+        sorted_x_inds = self.x[sorted_idx]
+        sorted_y_inds = self.y[sorted_idx]
+
+        return sorted_x_inds, sorted_y_inds
+
+    def get_fit(self):
+        """
+        Based on searched x and y coordinates, polyfit with second order.
+        Take median value in previous frames to smooth.
+        """
+        self.fit = np.polyfit(self.y, self.x, 2)
+
+        self.current_bottom_x, self.current_top_x = self.get_intercepts()
+
+        self.bottom_x.append(self.current_bottom_x)
+        self.top_x.append(self.current_top_x)
+        self.current_bottom_x = np.median(self.bottom_x)
+        self.current_top_x = np.median(self.top_x)
+
+        self.x = np.append(self.x, self.current_bottom_x)
+        self.x = np.append(self.x, self.current_top_x)
+        self.y = np.append(self.y, 720)
+        self.y = np.append(self.y, 0)
+
+        self.x, self.y = self.sort_idx()
+        self.fit = np.polyfit(self.y, self.x, 2)
+        self.A.append(self.fit[0])
+        self.B.append(self.fit[1])
+        self.C.append(self.fit[2])
+        self.fity = self.y
+        self.fit = [np.median(self.A), np.median(self.B), np.median(self.C)]
+        self.fitx = self.fit[0] * self.fity ** 2 + self.fit[1] * self.fity + self.fit[2]
+
+        return self.fit, self.fitx, self.fity  
 
 def camera_calibration():
     global mtx,dist
