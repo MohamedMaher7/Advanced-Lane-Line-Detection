@@ -54,7 +54,7 @@ Last step is to transform the lane identified back onto the road image.
 
 **In order to run main.py file:
 run main.sh with arguments in the following order:
-  1. input video path   
-	2. Output video path  
-	3. Debug mode (0/1)
+   1. input video path  
+   2. Output video path  
+   3. Debug mode (0/1)
 
