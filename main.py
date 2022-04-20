@@ -6,7 +6,7 @@ import glob
 import matplotlib.image as mpimg
 from moviepy.editor import VideoFileClip
 from collections import deque
-
+import sys
 # Define a class to receive the characteristics of each line detection
 class Line:
     def __init__(self):
