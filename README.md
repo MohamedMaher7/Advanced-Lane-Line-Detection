@@ -50,3 +50,11 @@ Last step is to transform the lane identified back onto the road image.
 ![Screenshot 2022-04-19 221946](https://user-images.githubusercontent.com/73904088/164111137-29e96278-d41f-49a2-a33c-c047154b7e35.jpg)
 
 
+
+
+**In order to run main.py file:
+run main.sh with arguments in the following order:
+  1. input video path   
+	2. Output video path  
+	3. Debug mode (0/1)
+
