@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import moviepy
 from moviepy.editor import VideoFileClip
 
-
+weights_path ="./yolov3.weights"
+config_path ="./yolov3.cfg"
+labels_path ="./coco.names"
 
 net = cv2.dnn.readNetFromDarknet(config_path, weights_path)
 layers_names = ['yolo_82', 'yolo_94', 'yolo_106']
@@ -60,7 +62,54 @@ def draw_labeled_bboxes(img, Filtered_boxes, Filtered_confidence, Filtered_class
     draw(img_cp, img, Filtered_boxes)
     return img_cp
     
-    
+def Process(img):
+    global net, layers_names, labels, Frame_Flag, Filtered_boxes, Filtered_confidence, Filtered_classIDs, iou_threshold
+    if Frame_Flag:
+        boxes = []
+        confidences = []
+        classIDs = []
+
+        (H, W) = img.shape[:2]
+        blob = cv2.dnn.blobFromImage(img, 1 / 255.0, (416, 416), crop=False, swapRB=False)
+        net.setInput(blob)
+
+        layers_output = net.forward(layers_names)
+
+        for output in layers_output:
+            for detection in output:
+                scores = detection[5:]
+                classID = np.argmax(scores)
+                confidence = scores[classID]
+                if (confidence > 0.85):
+                    box = detection[:4] * np.array([W, H, W, H])
+                    bx, by, bw, bh = box.astype("int")
+                    x = int(bx - (bw / 2))
+                    y = int(by - (bh / 2))
+                    boxes.append([x, y, int(bw), int(bh)])
+                    confidences.append(float(confidence))
+                    classIDs.append(classID)
+
+        idxs = cv2.dnn.NMSBoxes(boxes, confidences, 0.8, 0.8)
+
+        Filtered_boxes = []
+        Filtered_confidence = []
+        Filtered_classIDs = []
+
+        for i in idxs:
+            flag = True
+            for j in idxs:
+                if (i == j):
+                    continue
+                if (iou(boxes[i], boxes[j]) > iou_threshold):
+                    if (confidences[i] < confidences[j]):
+                        flag = False
+            if flag:
+                Filtered_boxes.append(boxes[i])
+                Filtered_confidence.append(confidences[i])
+                Filtered_classIDs.append(classIDs[i])
+    draw_img = draw_labeled_bboxes(img, Filtered_boxes, Filtered_confidence, Filtered_classIDs)
+    Frame_Flag = not Frame_Flag
+    return draw_img    
     
     
     
